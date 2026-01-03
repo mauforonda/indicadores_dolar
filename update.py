@@ -68,6 +68,10 @@ for trade_type in ["BUY", "SELL"]:
     data.timestamp = data.timestamp.dt.tz_localize("UTC")
     data.timestamp = data.timestamp.dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    supabase.table(table).upsert(
-        data.to_dict(orient="records"), on_conflict="timestamp"
-    ).execute()
+    data.to_csv(f"{table}.csv", index=False)
+    try:
+        supabase.table(table).upsert(
+            data.to_dict(orient="records"), on_conflict="timestamp"
+        ).execute()
+    except Exception as e:
+        print(f"Error syncing with Supabase for table {table}: {e}")
