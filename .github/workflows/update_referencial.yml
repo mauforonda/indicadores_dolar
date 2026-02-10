@@ -1,7 +1,7 @@
-name: Update
+name: Update Referencial
 on:
   schedule:
-    - cron: '0,30 * * * *'
+    - cron: '0 16,22 * * *'
   workflow_dispatch:
 permissions:
   contents: write
@@ -24,7 +24,7 @@ jobs:
           pip install -r requirements.txt
       - name: Update data
         run: |
-         ./update.py
+         ./update_referencial.py --upload
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

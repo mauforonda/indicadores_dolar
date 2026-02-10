@@ -4,11 +4,8 @@ import pandas as pd
 import numpy as np
 import kagglehub
 from kagglehub import KaggleDatasetAdapter
-from supabase import create_client
-import os
-
-SB_URL = os.environ["SUPABASE_URL"]
-SB_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+from upload import upload_dataset
+import argparse
 
 
 def on_transactions(df):
@@ -36,12 +33,27 @@ def on_advs(df):
     return vwap, supply
 
 
+def do_upload():
+    parser = argparse.ArgumentParser(
+        description="Descarga y guarda la serie de precios rapida de la canastita del INE."
+    )
+    parser.add_argument(
+        "--upload",
+        action="store_true",
+        help="Sube los datos a Supabase (por defecto solo guarda CSV).",
+    )
+    args = parser.parse_args()
+    return args.upload
+
+
+upload = do_upload()
+
+
 kg = kagglehub.dataset_load(
     KaggleDatasetAdapter.PANDAS,
     "andreschirinos/p2p-bob-exchange",
     "advice.parquet",
 )
-supabase = create_client(SB_URL, SB_KEY)
 
 for trade_type in ["BUY", "SELL"]:
     tables = {"BUY": "dolar_sell", "SELL": "dolar_buy"}
@@ -69,9 +81,5 @@ for trade_type in ["BUY", "SELL"]:
     data.timestamp = data.timestamp.dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     data.to_csv(f"{table}.csv", index=False)
-    try:
-        supabase.table(table).upsert(
-            data.to_dict(orient="records"), on_conflict="timestamp"
-        ).execute()
-    except Exception as e:
-        print(f"Error syncing with Supabase for table {table}: {e}")
+    if upload:
+        upload_dataset(table, data, ["timestamp"])
